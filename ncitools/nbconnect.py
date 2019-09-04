@@ -62,7 +62,7 @@ def mk_url(nb_cfg, lport):
 
 
 def run_nb_tunnel(ssh, ssh_cfg, local_port=0, runtime_dir=None, auto_clean=False):
-    from ._ssh import launch_tunnel
+    from ._ssh import launch_nb_tunnel
 
     sftp = None
     cfgs = []
@@ -88,7 +88,7 @@ def run_nb_tunnel(ssh, ssh_cfg, local_port=0, runtime_dir=None, auto_clean=False
 
     tunnel = None
     for nb_cfg in cfgs:
-        tunnel = launch_tunnel(ssh_cfg, nb_cfg, local_port)
+        tunnel = launch_nb_tunnel(ssh_cfg, nb_cfg, local_port)
         url = mk_url(nb_cfg, tunnel.local_bind_port)
         if check_connection(url, direct=True):
             break

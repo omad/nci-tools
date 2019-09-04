@@ -2,7 +2,7 @@ import paramiko
 from pathlib import Path
 import click
 
-__all__ = ['open_ssh', 'launch_tunnel']
+__all__ = ['open_ssh', 'launch_nb_tunnel']
 
 
 def get_ssh_config(name):
@@ -137,7 +137,7 @@ def open_ssh(host, user=None, no_ask=True):
     return ssh, cfg
 
 
-def launch_tunnel(ssh_cfg, nb_cfg, lport=0):
+def launch_nb_tunnel(ssh_cfg, nb_cfg, lport=0):
     from sshtunnel import SSHTunnelForwarder
 
     ssh_user = ssh_cfg.get('user')
