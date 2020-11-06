@@ -1,6 +1,7 @@
+import click
 
 
-def vdi_ctl(ssh, configver='20151620513'):
+def vdi_ctl(ssh, configver='20151620513', debug=False):
 
     cmd = ('/opt/vdi/bin/session-ctl',
            '--configver={}'.format(configver))
@@ -15,6 +16,9 @@ def vdi_ctl(ssh, configver='20151620513'):
         cmdline = ' '.join(cmd + args)
         (_, stdout, stderr) = ssh.exec_command(cmdline)
         txt = stdout.read().decode('utf-8')
+
+        if debug:
+            click.echo(f'Received: {txt}')
 
         if raw:
             return txt

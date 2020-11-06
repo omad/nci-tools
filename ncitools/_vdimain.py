@@ -1,9 +1,15 @@
-import click
+"""
+For the NCI VDI the available commands are in https://vdi.nci.org.au/strudel.json
+
+"""
+import os
 import sys
 from collections import namedtuple
 from random import randint
 
-Ctx = namedtuple('Ctx', ['ctl', 'ssh', 'ssh_cfg'])
+import click
+
+Ctx = namedtuple('Ctx', ['ctl', 'ssh', 'ssh_cfg', 'debug'])
 
 
 @click.group()
@@ -11,7 +17,8 @@ Ctx = namedtuple('Ctx', ['ctl', 'ssh', 'ssh_cfg'])
 @click.option('--host', default='vdi.nci.org.au', help='Customize vdi login node')
 @click.option('--user', help='SSH user name, if not given will be read from ~/.ssh/config')
 @click.option('--no-ask', is_flag=True, help='Do not ask for passwords')
-def cli(ctx, host, user, no_ask):
+@click.option('--debug', is_flag=True, help='Debug!', default=True)
+def cli(ctx, host, user, no_ask, debug):
     """ Control and query info about VDI sessions
     """
     from ._ssh import open_ssh
@@ -20,12 +27,12 @@ def cli(ctx, host, user, no_ask):
     try:
         ssh, ssh_cfg = open_ssh(host, user, no_ask=no_ask)
     except:
-        click.echo('Failed to connect to "{}{}"'.format(user+'@' if user else '', host))
+        click.echo('Failed to connect to "{}{}"'.format(user + '@' if user else '', host))
         ctx.exit()
 
-    ctl = vdi_ctl(ssh)
+    ctl = vdi_ctl(ssh, debug=debug)
 
-    ctx.obj = Ctx(ssh=ssh, ssh_cfg=ssh_cfg, ctl=ctl)
+    ctx.obj = Ctx(ssh=ssh, ssh_cfg=ssh_cfg, ctl=ctl, debug=debug)
 
 
 @cli.command('launch')
@@ -44,8 +51,6 @@ def launch(ctx, force):
     job = ctl('launch', '--partition', 'main')
     click.echo(job.get('id'))
 
-    return 0
-
 
 @cli.command('terminate')
 @click.pass_obj
@@ -59,6 +64,17 @@ def terminate(ctx):
         jobid = job['id']
         click.echo('Terminating {}'.format(jobid))
         ctl('terminate', '--jobid', jobid)
+
+
+@cli.command('ctl')
+@click.pass_obj
+@click.argument('args', nargs=-1)
+def ctl(ctx, args):
+    """Send a custom command to VDI session-ctl"""
+    ctl = ctx.ctl
+
+    out = ctl(*args)
+    click.echo(out)
 
 
 @cli.command('host')
@@ -78,7 +94,35 @@ def hostname(ctx):
         host = ctl('get-host', '--jobid', job['id']).get('host')
         click.echo(host)
 
-    return 0
+
+@cli.command('ssh')
+@click.pass_obj
+def ssh(ctx):
+    ctl = ctx.ctl
+
+    jobs = ctl('list-avail', '--partition', 'main', flatten=False)
+
+    if len(jobs) == 0:
+        click.echo('No jobs running', err=True)
+        sys.exit(1)
+
+    for job in jobs:
+        host = ctl('get-host', '--jobid', job['id']).get('host')
+        click.echo(f"Connecting to {host}")
+        # Tidy up our open ssh session to the vdi command host
+        ctx.ssh.close()
+        os.execvp("ssh", ['ssh', host, '-v' if ctx.debug else ''])
+
+
+@cli.command('gui')
+@click.pass_obj
+def gui(ctx):
+    """Launch a GUI connection to VDI"""
+    # Start a session if one doesn't already exist
+    # Get all the required information
+    # Start up an SSH Tunnel
+    # Launch TurboVNC to connect
+    # When TurboVNC disconnects, ask whether to end session
 
 
 @cli.command('get-passwd')
@@ -95,7 +139,6 @@ def get_passwd(ctx):
         sys.exit(1)
 
     click.echo(password)
-    return 0
 
 
 def collect_vnc_info(ctl, job_id, ssh_cfg):
@@ -126,7 +169,7 @@ def collect_vnc_info(ctl, job_id, ssh_cfg):
 
     return dict(host=host,
                 display=display,
-                port=display+5900,
+                port=display + 5900,
                 passwd=passwd)
 
 
@@ -165,7 +208,9 @@ def get_vnc_tunnel_cmd(ctx, job_id, local_port):
 @click.option('--as-port', is_flag=True, help='Print it as a port number of the VNC server')
 @click.pass_obj
 def display_nbr(ctx, as_port=False):
-    """ Print display number for active session (s)
+    """ DEPRECATE: Print display number for active session (s)
+
+    Can't do much with this...
     """
     ctl = ctx.ctl
 
