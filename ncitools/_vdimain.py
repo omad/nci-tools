@@ -3,6 +3,7 @@ For the NCI VDI the available commands are in https://vdi.nci.org.au/strudel.jso
 
 """
 import os
+import subprocess
 import sys
 from collections import namedtuple
 from random import randint
@@ -122,6 +123,11 @@ def gui(ctx):
     # Get all the required information
     # Start up an SSH Tunnel
     # Launch TurboVNC to connect
+
+    subprocess.run("/Applications/TurboVNC/TurboVNC Viewer.app/Contents/MacOS/TurboVNC Viewer")
+    args = ['--Server', f"localhost::{local_port}", '--Tunnel=1']
+
+    # Actually, TurboVNC can do it's own SSH tunneling...
     # When TurboVNC disconnects, ask whether to end session
 
 
